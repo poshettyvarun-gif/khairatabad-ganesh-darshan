@@ -1,12 +1,12 @@
 # Khairatabad Ganesh Darshanam Slot Booking
 
-A complete Next.js and Supabase portal for devotee registration, Darshan requests, atomic admin approval, schedule management, role-based access, and secure CSV exports.
+A complete Next.js and Supabase portal for devotee registration, Darshan requests, atomic admin approval, schedule management, role-based access, and secure PDF passes.
 
 ## Stack and architecture
 
 - Next.js App Router, React, TypeScript and Tailwind CSS
 - Supabase Auth and PostgreSQL with Row Level Security
-- Server route handlers for authentication, privileged administration and CSV output
+- Server route handlers for authentication, privileged administration and branded PDF output
 - PostgreSQL functions with row locks for race-safe capacity reservation
 
 Pending requests **do not consume capacity**. `approve_booking` locks both the booking and its slot, re-checks remaining capacity, increments the approved count, and changes status in one transaction. A cancelled approved booking atomically releases its capacity. Requests are limited to 20 people; change both the Zod validation and database check if policy changes.
@@ -49,7 +49,7 @@ Never offer role selection during public registration.
 - Middleware refreshes sessions; every protected page and API checks the authenticated user again.
 - RLS limits devotees to their own profile/bookings and read-only active schedule data. No direct booking mutation policy exists; creation goes through the validated function.
 - Privileged status functions are revoked from browser roles and invoked only after server-side admin authorization.
-- User CSV queries require both the authenticated owner and `approved` status. Admin exports require the admin role.
+- User PDF queries require both the authenticated owner and `approved` status. Admin exports require the admin role.
 - Unique/index/check constraints protect usernames, active duplicate requests, valid counts and slot bounds.
 - An immutable audit row records every administrative status transition.
 
@@ -58,7 +58,7 @@ Never offer role selection during public registration.
 - Public: `/`, `/login`, `/register`
 - Devotee: `/dashboard`, `/booking`, `/my-bookings`
 - Admin: `/admin`, `/admin/bookings`, `/admin/schedule`, `/admin/users`
-- Approved devotees download one authorized CSV per booking. Admins can export the complete authorized booking dataset.
+- Approved devotees download one authorized branded PDF pass per booking. Admins can export the complete authorized booking report as a PDF.
 - Schedule management supports dates, slots, capacities and enable/disable controls. The schema uses `ON DELETE RESTRICT`, so a date or slot with dependent bookings cannot be deleted accidentally. The UI intentionally favors disabling over destructive deletion.
 
 ## Supabase notes
@@ -74,4 +74,4 @@ Keep email confirmation disabled only for controlled demos. Public registration 
 
 ## Validation checklist
 
-After connecting a test project, verify registration and username login, role redirects, inactive/full-slot rejection, duplicate prevention, concurrent admin approval, rejection/cancellation, owner-only CSV, admin export, and anonymous/non-admin access to admin URLs. Test at 375px and desktop widths. Database-backed integration tests require a configured Supabase instance; static checks can run without one.
+After connecting a test project, verify registration and username login, role redirects, inactive/full-slot rejection, duplicate prevention, concurrent admin approval, rejection/cancellation, owner-only PDF, admin export, and anonymous/non-admin access to admin URLs. Test at 375px and desktop widths. Database-backed integration tests require a configured Supabase instance; static checks can run without one.
