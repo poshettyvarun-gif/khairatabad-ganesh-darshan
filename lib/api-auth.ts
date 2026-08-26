@@ -1,0 +1,2 @@
+import { NextResponse } from "next/server";import { createClient } from "@/lib/supabase/server";
+export async function requireApiAdmin(){const s=await createClient(),{data:{user}}=await s.auth.getUser();if(!user)return {ok:false as const,response:NextResponse.json({error:"Unauthorized"},{status:401})};const {data:p}=await s.from("profiles").select("*").eq("user_id",user.id).single();if(!p||p.role!=="admin")return {ok:false as const,response:NextResponse.json({error:"You are not authorized to perform this action."},{status:403})};return {ok:true as const,profile:p}}

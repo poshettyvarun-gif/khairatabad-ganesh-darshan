@@ -1,0 +1,2 @@
+import { NextResponse } from "next/server";import { createClient } from "@/lib/supabase/server";
+export async function GET(){const s=await createClient();const {data,error}=await s.from("darshan_dates").select("id,date,is_active,time_slots(id,darshan_date_id,start_time,end_time,capacity,is_active,booked_count,remaining_capacity)").eq("is_active",true).eq("time_slots.is_active",true).gte("date",new Date().toISOString().slice(0,10)).order("date");if(error)return NextResponse.json({error:"Schedule unavailable."},{status:500});return NextResponse.json({dates:data})}

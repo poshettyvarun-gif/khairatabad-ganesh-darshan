@@ -1,0 +1,2 @@
+import Link from "next/link";
+export function DashboardNav({admin=false}:{admin?:boolean}){const links=admin?[["Overview","/admin"],["Bookings","/admin/bookings"],["Schedule","/admin/schedule"],["Users","/admin/users"]]:[["Dashboard","/dashboard"],["Book Darshan","/booking"],["My Bookings","/my-bookings"]];return <nav className="mb-7 flex gap-2 overflow-x-auto rounded-xl bg-orange-950 p-2 text-sm font-bold text-white">{links.map(([l,h])=><Link key={h} className="whitespace-nowrap rounded-lg px-4 py-2 hover:bg-white/15" href={h}>{l}</Link>)}</nav>}
