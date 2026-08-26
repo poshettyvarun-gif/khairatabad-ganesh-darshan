@@ -1,17 +1,224 @@
-import PDFDocument from "pdfkit";
+export type PassDetails = {
+  bookingId: string;
+  fullName: string;
+  mobile: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  persons: number;
+  approvedAt: string | null;
+};
 
-export type PassDetails = { bookingId:string; fullName:string; mobile:string; date:string; startTime:string; endTime:string; persons:number; approvedAt:string|null };
-export type ReportRow = PassDetails & { username:string; email:string; status:string; createdAt:string };
-const saffron="#8f2f0c", gold="#fbbf24", ink="#2d221f", muted="#70635d";
-const inDate=(v:string)=>new Intl.DateTimeFormat("en-IN",{day:"2-digit",month:"long",year:"numeric"}).format(new Date(`${v}T00:00:00`));
-const inTime=(v:string)=>new Date(`2000-01-01T${v}`).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
-const issued=(v:string|null)=>v?new Date(v).toLocaleString("en-IN"):"-";
+export type ReportRow = PassDetails & {
+  username: string;
+  email: string;
+  status: string;
+  createdAt: string;
+};
 
-function resultBuffer(doc:PDFKit.PDFDocument){return new Promise<Buffer>((resolve,reject)=>{const chunks:Buffer[]=[];doc.on("data",(c:Buffer)=>chunks.push(c));doc.on("end",()=>resolve(Buffer.concat(chunks)));doc.on("error",reject)})}
-function background(doc:PDFKit.PDFDocument,heading:string,subtitle:string){const {width,height}=doc.page;doc.rect(0,0,width,height).fill("#fffaf4");doc.rect(0,0,width,176).fill(saffron);doc.fillColor("#d97706");for(let x=15;x<width;x+=24)for(let y=14;y<176;y+=24)doc.circle(x,y,1.1).fill();doc.fillColor(gold).font("Helvetica-Bold").fontSize(11).text("KHAIRATABAD GANESH DARSHANAM",42,35);doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(27).text(heading,42,64);doc.fillColor("#fde68a").font("Helvetica").fontSize(11).text(subtitle,42,103);doc.fillColor(gold).circle(width-73,78,34).fill();doc.fillColor(saffron).font("Helvetica-Bold").fontSize(23).text("OM",width-105,71,{width:64,align:"center"})}
-function field(doc:PDFKit.PDFDocument,x:number,y:number,label:string,value:string,width=210){doc.fillColor(muted).font("Helvetica-Bold").fontSize(8).text(label.toUpperCase(),x,y,{width});doc.fillColor(ink).font("Helvetica-Bold").fontSize(12).text(value,x,y+14,{width})}
+const saffron = "#8f2f0c";
+const gold = "#fbbf24";
+const ink = "#2d221f";
+const muted = "#70635d";
+const encoder = new TextEncoder();
 
-export async function makeBookingPassPdf(data:PassDetails){const doc=new PDFDocument({size:"A4",margin:0,info:{Title:`Ganesh Darshan Pass - ${data.bookingId}`,Author:"Khairatabad Ganesh Darshanam"}});const result=resultBuffer(doc);background(doc,"Approved Darshan Pass","Please present this pass at the Darshan entry point.");doc.roundedRect(40,150,515,500,18).fill("#ffffff");doc.fillColor(gold).roundedRect(40,150,515,7,3).fill();doc.fillColor(saffron).font("Helvetica-Bold").fontSize(9).text("BOOKING ID",68,190);doc.fillColor(saffron).font("Helvetica-Bold").fontSize(25).text(data.bookingId,68,207);doc.fillColor("#166534").roundedRect(417,190,104,27,14).fill();doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(10).text("APPROVED",417,199,{width:104,align:"center"});doc.strokeColor("#e7ded9").lineWidth(1).moveTo(68,255).lineTo(526,255).stroke();field(doc,68,284,"Devotee name",data.fullName);field(doc,323,284,"Mobile number",data.mobile,170);field(doc,68,365,"Darshan date",inDate(data.date));field(doc,323,365,"Darshan timing",`${inTime(data.startTime)} - ${inTime(data.endTime)}`,190);field(doc,68,446,"Number of persons",String(data.persons));field(doc,323,446,"Approved on",issued(data.approvedAt),190);doc.roundedRect(68,526,459,78,10).fill("#fff7ed");doc.fillColor(saffron).font("Helvetica-Bold").fontSize(10).text("IMPORTANT",86,543);doc.fillColor(ink).font("Helvetica").fontSize(10).text("Carry this pass and a valid photo ID. Entry is subject to on-site verification and the allotted time slot.",86,560,{width:422,lineGap:3});doc.fillColor(muted).font("Helvetica").fontSize(8).text("Official Khairatabad Ganesh Darshanam booking portal",40,703,{width:515,align:"center"});doc.end();return result}
+function ascii(value: unknown) {
+  return String(value ?? "").normalize("NFKD").replace(/[^\x20-\x7e]/g, "?");
+}
 
-function reportHeader(doc:PDFKit.PDFDocument,page:number){background(doc,"Booking Report",`Authorized administrative export - page ${page}`);const cols=[42,120,224,314,394,470],heads=["Booking ID","Devotee","Darshan","Persons","Status","Approved"];doc.roundedRect(34,153,527,27,6).fill("#fff1df");heads.forEach((h,i)=>doc.fillColor(saffron).font("Helvetica-Bold").fontSize(7).text(h,cols[i],163));return cols}
-export async function makeAdminReportPdf(rows:ReportRow[]){const doc=new PDFDocument({size:"A4",layout:"landscape",margin:0,info:{Title:"Khairatabad Ganesh Darshanam Booking Report",Author:"Khairatabad Ganesh Darshanam"}});const result=resultBuffer(doc);let page=1,cols=reportHeader(doc,page),y=197;for(const row of rows){if(y>520){doc.addPage();page+=1;cols=reportHeader(doc,page);y=197}doc.fillColor("#f5eee9").rect(34,y-7,527,1).fill();const values=[row.bookingId,`${row.fullName}\n@${row.username}\n${row.mobile}`,`${inDate(row.date)}\n${inTime(row.startTime)} - ${inTime(row.endTime)}`,String(row.persons),row.status.toUpperCase(),issued(row.approvedAt)],widths=[73,94,80,50,62,85];values.forEach((v,i)=>doc.fillColor(ink).font(i===0?"Helvetica-Bold":"Helvetica").fontSize(7.5).text(v,cols[i],y,{width:widths[i],lineGap:2}));y+=44}if(!rows.length)doc.fillColor(muted).font("Helvetica").fontSize(13).text("No booking records found.",34,220,{width:527,align:"center"});doc.end();return result}
+function escaped(value: unknown) {
+  return ascii(value).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+}
+
+function rgb(hex: string) {
+  const value = hex.replace("#", "");
+  return [0, 2, 4]
+    .map((offset) => Number.parseInt(value.slice(offset, offset + 2), 16) / 255)
+    .map((channel) => channel.toFixed(3))
+    .join(" ");
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(
+    new Date(`${value}T00:00:00.000Z`),
+  );
+}
+
+function formatTime(value: string) {
+  const [hourText, minute = "00"] = value.slice(0, 5).split(":");
+  const hour = Number(hourText);
+  return `${String(hour % 12 || 12).padStart(2, "0")}:${minute} ${hour >= 12 ? "PM" : "AM"}`;
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
+class Canvas {
+  readonly commands: string[] = [];
+  readonly width: number;
+  readonly height: number;
+
+  constructor(width: number, height: number) {
+    this.width = width;
+    this.height = height;
+  }
+
+  fill(color: string) {
+    this.commands.push(`${rgb(color)} rg`);
+    return this;
+  }
+
+  stroke(color: string, width = 1) {
+    this.commands.push(`${rgb(color)} RG ${width} w`);
+    return this;
+  }
+
+  rect(x: number, y: number, width: number, height: number, color: string) {
+    this.fill(color);
+    this.commands.push(`${x} ${this.height - y - height} ${width} ${height} re f`);
+    return this;
+  }
+
+  line(x1: number, y1: number, x2: number, y2: number, color: string, width = 1) {
+    this.stroke(color, width);
+    this.commands.push(`${x1} ${this.height - y1} m ${x2} ${this.height - y2} l S`);
+    return this;
+  }
+
+  circle(x: number, y: number, radius: number, color: string) {
+    const k = radius * 0.5522847498;
+    const cy = this.height - y;
+    this.fill(color);
+    this.commands.push(`${x + radius} ${cy} m ${x + radius} ${cy + k} ${x + k} ${cy + radius} ${x} ${cy + radius} c ${x - k} ${cy + radius} ${x - radius} ${cy + k} ${x - radius} ${cy} c ${x - radius} ${cy - k} ${x - k} ${cy - radius} ${x} ${cy - radius} c ${x + k} ${cy - radius} ${x + radius} ${cy - k} ${x + radius} ${cy} c f`);
+    return this;
+  }
+
+  text(value: unknown, x: number, y: number, options: { bold?: boolean; color?: string; size?: number; align?: "left" | "center"; width?: number } = {}) {
+    const size = options.size ?? 12;
+    const clean = ascii(value);
+    const estimatedWidth = clean.length * size * 0.53;
+    const textX = options.align === "center" && options.width ? x + Math.max(0, (options.width - estimatedWidth) / 2) : x;
+    this.commands.push(`BT /${options.bold ? "F2" : "F1"} ${size} Tf ${rgb(options.color ?? ink)} rg 1 0 0 1 ${textX.toFixed(2)} ${(this.height - y - size).toFixed(2)} Tm (${escaped(clean)}) Tj ET`);
+    return this;
+  }
+
+  textLines(value: unknown, x: number, y: number, width: number, options: { bold?: boolean; color?: string; size?: number; lineGap?: number } = {}) {
+    const size = options.size ?? 10;
+    const maxChars = Math.max(10, Math.floor(width / (size * 0.53)));
+    const words = ascii(value).split(/\s+/);
+    const lines: string[] = [];
+    let line = "";
+    for (const word of words) {
+      const next = line ? `${line} ${word}` : word;
+      if (next.length > maxChars && line) {
+        lines.push(line);
+        line = word;
+      } else line = next;
+    }
+    if (line) lines.push(line);
+    const spacing = size + (options.lineGap ?? 3);
+    lines.forEach((entry, index) => this.text(entry, x, y + index * spacing, options));
+    return this;
+  }
+}
+
+function background(canvas: Canvas, heading: string, subtitle: string) {
+  canvas.rect(0, 0, canvas.width, canvas.height, "#fffaf4");
+  canvas.rect(0, 0, canvas.width, 176, saffron);
+  for (let x = 15; x < canvas.width; x += 24) for (let y = 14; y < 176; y += 24) canvas.circle(x, y, 1.1, "#d97706");
+  canvas.text("KHAIRATABAD GANESH DARSHANAM", 42, 35, { bold: true, color: gold, size: 11 });
+  canvas.text(heading, 42, 64, { bold: true, color: "#ffffff", size: 27 });
+  canvas.text(subtitle, 42, 103, { color: "#fde68a", size: 11 });
+  canvas.circle(canvas.width - 73, 78, 34, gold);
+  canvas.text("OM", canvas.width - 105, 66, { bold: true, color: saffron, size: 23, align: "center", width: 64 });
+}
+
+function field(canvas: Canvas, x: number, y: number, label: string, value: string, width = 210) {
+  canvas.text(label.toUpperCase(), x, y, { bold: true, color: muted, size: 8 });
+  canvas.textLines(value, x, y + 14, width, { bold: true, color: ink, size: 12, lineGap: 2 });
+}
+
+function buildPdf(pages: Canvas[]) {
+  const pageRefs = pages.map((_, index) => 5 + index * 2);
+  const contentRefs = pages.map((_, index) => 6 + index * 2);
+  const objects: string[] = [];
+  objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
+  objects[2] = `<< /Type /Pages /Kids [${pageRefs.map((ref) => `${ref} 0 R`).join(" ")}] /Count ${pages.length} >>`;
+  objects[3] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+  objects[4] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>";
+  pages.forEach((page, index) => {
+    const stream = page.commands.join("\n");
+    objects[pageRefs[index]] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${page.width} ${page.height}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentRefs[index]} 0 R >>`;
+    objects[contentRefs[index]] = `<< /Length ${encoder.encode(stream).byteLength} >>\nstream\n${stream}\nendstream`;
+  });
+
+  let pdf = "%PDF-1.4\n%PDF-GANESH\n";
+  const offsets: number[] = [0];
+  for (let index = 1; index < objects.length; index += 1) {
+    offsets[index] = encoder.encode(pdf).byteLength;
+    pdf += `${index} 0 obj\n${objects[index]}\nendobj\n`;
+  }
+  const xref = encoder.encode(pdf).byteLength;
+  pdf += `xref\n0 ${objects.length}\n0000000000 65535 f \n`;
+  for (let index = 1; index < objects.length; index += 1) pdf += `${String(offsets[index]).padStart(10, "0")} 00000 n \n`;
+  pdf += `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return encoder.encode(pdf);
+}
+
+export async function makeBookingPassPdf(data: PassDetails) {
+  const page = new Canvas(595, 842);
+  background(page, "Approved Darshan Pass", "Please present this pass at the Darshan entry point.");
+  page.rect(40, 150, 515, 500, "#ffffff");
+  page.rect(40, 150, 515, 7, gold);
+  page.text("BOOKING ID", 68, 190, { bold: true, color: saffron, size: 9 });
+  page.text(data.bookingId, 68, 207, { bold: true, color: saffron, size: 25 });
+  page.rect(417, 190, 104, 27, "#166534");
+  page.text("APPROVED", 417, 198, { bold: true, color: "#ffffff", size: 10, align: "center", width: 104 });
+  page.line(68, 255, 526, 255, "#e7ded9");
+  field(page, 68, 284, "Devotee name", data.fullName);
+  field(page, 323, 284, "Mobile number", data.mobile, 170);
+  field(page, 68, 365, "Darshan date", formatDate(data.date));
+  field(page, 323, 365, "Darshan timing", `${formatTime(data.startTime)} - ${formatTime(data.endTime)}`, 190);
+  field(page, 68, 446, "Number of persons", String(data.persons));
+  field(page, 323, 446, "Approved on", formatDateTime(data.approvedAt), 190);
+  page.rect(68, 526, 459, 78, "#fff7ed");
+  page.text("IMPORTANT", 86, 543, { bold: true, color: saffron, size: 10 });
+  page.textLines("Carry this pass and a valid photo ID. Entry is subject to on-site verification and the allotted time slot.", 86, 560, 422, { color: ink, size: 10, lineGap: 3 });
+  page.text("Official Khairatabad Ganesh Darshanam booking portal", 40, 703, { color: muted, size: 8, align: "center", width: 515 });
+  return buildPdf([page]);
+}
+
+function makeReportPage(rows: ReportRow[], pageNumber: number) {
+  const page = new Canvas(842, 595);
+  background(page, "Booking Report", `Authorized administrative export - page ${pageNumber}`);
+  const columns = [42, 140, 275, 420, 500, 610];
+  const headers = ["Booking ID", "Devotee", "Darshan", "Persons", "Status", "Approved"];
+  page.rect(34, 153, 774, 27, "#fff1df");
+  headers.forEach((header, index) => page.text(header, columns[index], 163, { bold: true, color: saffron, size: 8 }));
+  let y = 197;
+  rows.forEach((row) => {
+    page.line(34, y - 7, 808, y - 7, "#f5eee9");
+    page.text(row.bookingId, columns[0], y, { bold: true, color: ink, size: 8 });
+    page.textLines(`${row.fullName} @${row.username} ${row.mobile}`, columns[1], y, 122, { color: ink, size: 7.5, lineGap: 2 });
+    page.textLines(`${formatDate(row.date)} ${formatTime(row.startTime)} - ${formatTime(row.endTime)}`, columns[2], y, 130, { color: ink, size: 7.5, lineGap: 2 });
+    page.text(String(row.persons), columns[3], y, { color: ink, size: 8 });
+    page.text(row.status.toUpperCase(), columns[4], y, { color: ink, size: 8 });
+    page.textLines(formatDateTime(row.approvedAt), columns[5], y, 150, { color: ink, size: 7.5, lineGap: 2 });
+    y += 48;
+  });
+  return page;
+}
+
+export async function makeAdminReportPdf(rows: ReportRow[]) {
+  if (!rows.length) {
+    const page = new Canvas(842, 595);
+    background(page, "Booking Report", "Authorized administrative export");
+    page.text("No booking records found.", 0, 250, { color: muted, size: 14, align: "center", width: 842 });
+    return buildPdf([page]);
+  }
+  const chunks: ReportRow[][] = [];
+  for (let index = 0; index < rows.length; index += 7) chunks.push(rows.slice(index, index + 7));
+  return buildPdf(chunks.map((chunk, index) => makeReportPage(chunk, index + 1)));
+}
