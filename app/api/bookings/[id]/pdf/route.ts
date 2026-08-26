@@ -10,7 +10,7 @@ type BookingForPass = {
   booking_id: string;
   number_of_persons: number;
   approved_at: string | null;
-  profiles: { full_name: string; mobile: string } | { full_name: string; mobile: string }[];
+  profiles: { full_name: string; mobile: string | null } | { full_name: string; mobile: string | null }[];
   time_slots:
     | { start_time: string; end_time: string; darshan_dates: { date: string } | { date: string }[] }
     | { start_time: string; end_time: string; darshan_dates: { date: string } | { date: string }[] }[];

@@ -1,7 +1,7 @@
 export type PassDetails = {
   bookingId: string;
   fullName: string;
-  mobile: string;
+  mobile: string | null;
   date: string;
   startTime: string;
   endTime: string;
@@ -178,7 +178,7 @@ export async function makeBookingPassPdf(data: PassDetails) {
   page.text("APPROVED", 417, 198, { bold: true, color: "#ffffff", size: 10, align: "center", width: 104 });
   page.line(68, 255, 526, 255, "#e7ded9");
   field(page, 68, 284, "Devotee name", data.fullName);
-  field(page, 323, 284, "Mobile number", data.mobile, 170);
+  field(page, 323, 284, "Mobile number", data.mobile || "Not provided", 170);
   field(page, 68, 365, "Darshan date", formatDate(data.date));
   field(page, 323, 365, "Darshan timing", `${formatTime(data.startTime)} - ${formatTime(data.endTime)}`, 190);
   field(page, 68, 446, "Number of persons", String(data.persons));
@@ -201,7 +201,7 @@ function makeReportPage(rows: ReportRow[], pageNumber: number) {
   rows.forEach((row) => {
     page.line(34, y - 7, 808, y - 7, "#f5eee9");
     page.text(row.bookingId, columns[0], y, { bold: true, color: ink, size: 8 });
-    page.textLines(`${row.fullName} @${row.username} ${row.mobile}`, columns[1], y, 122, { color: ink, size: 7.5, lineGap: 2 });
+    page.textLines(`${row.fullName} @${row.username} ${row.mobile ?? ""}`, columns[1], y, 122, { color: ink, size: 7.5, lineGap: 2 });
     page.textLines(`${formatDate(row.date)} ${formatTime(row.startTime)} - ${formatTime(row.endTime)}`, columns[2], y, 130, { color: ink, size: 7.5, lineGap: 2 });
     page.text(String(row.persons), columns[3], y, { color: ink, size: 8 });
     page.text(row.status.toUpperCase(), columns[4], y, { color: ink, size: 8 });

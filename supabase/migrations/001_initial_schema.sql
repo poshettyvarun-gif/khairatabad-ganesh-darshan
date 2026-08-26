@@ -5,7 +5,7 @@ create type public.booking_status as enum ('pending','approved','rejected','canc
 create table public.profiles (
  id uuid primary key default gen_random_uuid(), user_id uuid not null unique references auth.users(id) on delete cascade,
  full_name text not null check(length(full_name) between 2 and 100), username text not null check(username ~ '^[A-Za-z0-9_]{3,30}$'),
- mobile text not null check(mobile ~ '^[6-9][0-9]{9}$'), email text not null, role public.app_role not null default 'user', created_at timestamptz not null default now()
+ mobile text check(mobile is null or mobile ~ '^[6-9][0-9]{9}$'), email text not null, role public.app_role not null default 'user', created_at timestamptz not null default now()
 );
 create unique index profiles_username_lower_key on public.profiles(lower(username));
 create unique index profiles_email_lower_key on public.profiles(lower(email));
