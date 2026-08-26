@@ -31,7 +31,7 @@ For production, run `npm run lint`, `npm run typecheck`, and `npm run build`, th
 Passwords are never stored in source. After loading the migration, create demo users by supplying passwords at execution time:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/create-demo-users.mjs 'Admin-Strong-Password!' 'User-Strong-Password!'
+npm run demo:users -- 'Admin-Strong-Password!' 'User-Strong-Password!'
 ```
 
 This creates usernames `demo_admin` and `demo_user`. In production, create an ordinary account first and promote it only through a trusted SQL/admin operation:
